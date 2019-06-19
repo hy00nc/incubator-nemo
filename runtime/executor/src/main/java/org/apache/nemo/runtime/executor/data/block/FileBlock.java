@@ -108,7 +108,6 @@ public final class FileBlock<K extends Serializable> implements Block<K> {
           new ByteBuffer[buffers.size()]
         );
         channel.write(byteBuffers);
-        channel.close();
       }
     }
   }

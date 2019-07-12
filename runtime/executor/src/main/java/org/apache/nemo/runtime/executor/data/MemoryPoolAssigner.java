@@ -128,55 +128,6 @@ public class MemoryPoolAssigner {
     }
   }
 
-//  /**
-//   * Returns the number of available MemoryChunks.
-//   *
-//   * @return
-//   */
-//  public int available() {
-//    return memoryPool.getNumOfAvailableMemoryChunks();
-//  }
-
-
-//  abstract static class MemoryPool {
-//    abstract int getNumOfAvailableMemoryChunks();
-//
-//    abstract MemoryChunk allocateNewChunk();
-//
-//    abstract MemoryChunk requestChunkFromPool();
-//
-//    abstract void returnChunkToPool(MemoryChunk segment);
-//
-//    abstract void clear();
-//  }
-
-
-//   static final class HeapMemoryPool extends MemoryPool {
-//   private final ConcurrentLinkedQueue<ByteBuffer> available;
-//   private final int chunkSize;
-//   HeapMemoryPool(final int numInitialChunks, final int chunkSize) {
-//   this.chunkSize = chunkSize;
-//   this.available = new ConcurrentLinkedQueue<>();
-//   for (int i = 0; i < numInitialChunks; i++) {
-//   this.available.add(ByteBuffer.allocate(chunkSize));
-//   }
-//   }
-//   @Override
-//   int getNumOfAvailableMemoryChunks() {
-//   return this.available.size();
-//   }
-//   @Override
-//   MemoryChunk allocateNewChunk() {
-//   ByteBuffer memory = ByteBuffer.allocate(chunkSize);
-//   return new MemoryChunk(memory);
-//   }
-//   @Override
-//   MemoryChunk requestChunkFromPool() {
-//   }
-//   abstract void returnChunkToPool(MemoryChunk segment);
-//   abstract void clear();
-//   }
-
   /**
    *
    * Supports off-heap memory pool.

@@ -102,10 +102,10 @@ public class MemoryPoolAssigner {
         + " pages are remaining.");
     }
 
-//    for (int i = numChunks; i > 0; i--) {
-//      MemoryChunk chunk = memoryPool.requestChunkFromPool(sequential);
-//      target.add(chunk);
-//    }
+    for (int i = numChunks; i > 0; i--) {
+      MemoryChunk chunk = memoryPool.requestChunkFromPool(sequential);
+      target.add(chunk);
+    }
   }
 
   /**
@@ -154,9 +154,9 @@ public class MemoryPoolAssigner {
       available.add(memory);
     }
 
-    MemoryChunk requestChunkFromPool(final boolean sequential) {
+    MemoryChunk requestChunkFromPool(final boolean sequential) throws MemoryAllocationException {
       if (available.isEmpty()) {
-        allocateNewChunk();
+        //allocateNewChunk();
       }
       ByteBuffer buf = available.remove();
       return new MemoryChunk(buf, sequential);

@@ -154,7 +154,7 @@ public class MemoryPoolAssigner {
       available.add(memory);
     }
 
-    MemoryChunk requestChunkFromPool(final boolean sequential) throws MemoryAllocationException {
+    MemoryChunk requestChunkFromPool(final boolean sequential) {
       if (available.isEmpty()) {
         //allocateNewChunk();
       }

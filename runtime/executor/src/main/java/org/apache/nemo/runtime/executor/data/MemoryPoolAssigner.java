@@ -68,6 +68,7 @@ public class MemoryPoolAssigner {
     if (totalNumPages < 1) {
       throw new IllegalArgumentException("The given amount of memory amounted to less than one page.");
     }
+    LOG.info("memory_pool_size: {}", memorySize);
     LOG.info("total num of chunks: {}", totalNumPages);
     this.memoryPool = new MemoryPool(totalNumPages, chunkSize);
   }

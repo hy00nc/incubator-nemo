@@ -156,7 +156,7 @@ public class MemoryPoolAssigner {
 
     MemoryChunk requestChunkFromPool(final boolean sequential) {
       if (available.isEmpty()) {
-        //allocateNewChunk();
+        allocateNewChunk();
       }
       ByteBuffer buf = available.remove();
       return new MemoryChunk(buf, sequential);

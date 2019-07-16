@@ -102,10 +102,10 @@ public class MemoryPoolAssigner {
         + " pages are remaining.");
     }
 
-//    for (int i = numChunks; i > 0; i--) {
-//      MemoryChunk chunk = memoryPool.requestChunkFromPool(sequential);
-//      target.add(chunk);
-//    }
+    for (int i = numChunks; i > 0; i--) {
+      MemoryChunk chunk = memoryPool.requestChunkFromPool(sequential);
+      target.add(chunk);
+    }
   }
 
   /**

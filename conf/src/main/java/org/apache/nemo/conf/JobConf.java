@@ -293,7 +293,7 @@ public final class JobConf extends ConfigurationModuleBuilder {
    * TODO: Configuration option should be a ratio of JVM heap memory among the total memory allocated to the executor.
    */
   @NamedParameter(doc = "The size of off-heap memory pool of the executor",
-    short_name = "memory_pool_size", default_value = "1073741824")
+    short_name = "memory_pool_size", default_value = "983040000")
   public final class MemoryPoolSize implements Name<Long> {
   }
 

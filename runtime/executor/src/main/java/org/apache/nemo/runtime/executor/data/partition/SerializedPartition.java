@@ -162,6 +162,7 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
       } catch (final IllegalAccessException e) {
         throw new IOException();
       }
+      bytesOutputStream.release();
       this.committed = true;
     }
   }
@@ -241,6 +242,5 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
    * Releases the off-heap memory that this SerializedPartition holds.
    */
   public void release() {
-    bytesOutputStream.release();
   }
 }

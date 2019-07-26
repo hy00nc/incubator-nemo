@@ -59,6 +59,8 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
   private final EncoderFactory.Encoder encoder;
   private volatile List<ByteBuffer> dataList;
   private final boolean offheap;
+  @Nullable
+  private final MemoryPoolAssigner memoryPoolAssigner;
 
   /**
    * Creates a serialized {@link Partition} without actual data.
@@ -81,6 +83,7 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
     this.bytesOutputStream = new DirectByteBufferOutputStream(memoryPoolAssigner);
     this.wrappedStream = buildOutputStream(bytesOutputStream, serializer.getEncodeStreamChainers());
     this.encoder = serializer.getEncoderFactory().create(wrappedStream);
+    this.memoryPoolAssigner = memoryPoolAssigner;
     this.offheap = true;
   }
 
@@ -102,6 +105,7 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
     this.bytesOutputStream = null;
     this.wrappedStream = null;
     this.encoder = null;
+    this.memoryPoolAssigner = null;
     this.offheap = false;
   }
 
@@ -123,6 +127,7 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
     this.bytesOutputStream = null;
     this.wrappedStream = null;
     this.encoder = null;
+    this.memoryPoolAssigner = null;
     this.offheap = true;
   }
 
@@ -157,11 +162,7 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
       // inner buffer directly, which can be an unfinished(not flushed) buffer.
       wrappedStream.close();
       this.dataList = bytesOutputStream.getDirectByteBufferList();
-      try {
-        this.length = bytesOutputStream.size();
-      } catch (final IllegalAccessException e) {
-        throw new IOException();
-      }
+      this.length = bytesOutputStream.size();
       this.committed = true;
     }
   }
@@ -242,7 +243,7 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
    */
   public void release() {
     if (offheap) {
-      bytesOutputStream.release();
+      memoryPoolAssigner.returnChunksToPool(bytesOutputStream.getDirectMemoryChunkList());
     }
   }
 }

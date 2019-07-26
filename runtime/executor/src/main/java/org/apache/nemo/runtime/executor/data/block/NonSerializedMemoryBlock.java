@@ -175,8 +175,6 @@ public final class NonSerializedMemoryBlock<K extends Serializable> implements B
       return DataUtil.convertToSerPartitions(serializer, readPartitions(keyRange), memoryPoolAssigner);
     } catch (final IOException e) {
       throw new BlockFetchException(e);
-    } catch (final IllegalAccessException e) {
-      throw new BlockFetchException(e);
     } catch (final MemoryAllocationException e) {
       throw new BlockFetchException(e);
     }

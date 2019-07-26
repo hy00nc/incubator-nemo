@@ -114,8 +114,6 @@ public final class SerializedMemoryBlock<K extends Serializable> implements Bloc
         writeSerializedPartitions(convertedPartitions);
       } catch (final IOException e) {
         throw new BlockWriteException(e);
-      } catch (final IllegalAccessException e) {
-        throw new BlockWriteException(e);
       } catch (final MemoryAllocationException e) {
         throw new BlockWriteException(e);
       }

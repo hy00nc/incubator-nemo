@@ -29,15 +29,15 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Tests basic operations on {@link MemoryChunk}.
+ * Tests basic operations on {@link NonSequentialMemoryChunk}.
  */
-public class MemoryChunkTest {
-  private MemoryChunk chunk;
+public class NonSequentialMemoryChunkTest {
+  private NonSequentialMemoryChunk chunk;
   private ByteBuffer buffer = ByteBuffer.allocateDirect(1024);
 
   @Before
   public void setup() {
-    chunk = new MemoryChunk(buffer, false);
+    chunk = new NonSequentialMemoryChunk(buffer);
   }
 
   @Test

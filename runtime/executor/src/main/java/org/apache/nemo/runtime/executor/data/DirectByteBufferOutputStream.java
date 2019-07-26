@@ -37,7 +37,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
 
   private LinkedList<MemoryChunk> dataList = new LinkedList<>();
   private final int chunkSize;
-  private MemoryChunk currentBuf;
+  private SequentialMemoryChunk currentBuf;
   private final MemoryPoolAssigner memoryPoolAssigner;
 
   /**
@@ -50,7 +50,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
     this.chunkSize = memoryPoolAssigner.getChunkSize();
     this.memoryPoolAssigner = memoryPoolAssigner;
     newLastBuffer();
-    currentBuf = dataList.getLast();
+    currentBuf = (SequentialMemoryChunk) dataList.getLast();
   }
 
   /**
@@ -72,13 +72,11 @@ public final class DirectByteBufferOutputStream extends OutputStream {
     try {
       if (currentBuf.remaining() <= 0) {
         newLastBuffer();
-        currentBuf = dataList.getLast();
+        currentBuf = (SequentialMemoryChunk) dataList.getLast();
       }
       currentBuf.put((byte) b);
     } catch (IllegalStateException e) {
       throw new IllegalStateException("MemoryChunk has been freed");
-    } catch (IllegalAccessException e) {
-      throw new IOException("Not allowed for non-sequential MemoryChunk");
     } catch (MemoryAllocationException e) {
       throw new IOException("Failed to allocate memory");
     }
@@ -110,7 +108,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
       while (byteToWrite > 0) {
         if (currentBuf.remaining() <= 0) {
           newLastBuffer();
-          currentBuf = dataList.getLast();
+          currentBuf = (SequentialMemoryChunk) dataList.getLast();
         }
         final int bufRemaining = currentBuf.remaining();
         if (bufRemaining < byteToWrite) {
@@ -123,8 +121,6 @@ public final class DirectByteBufferOutputStream extends OutputStream {
           byteToWrite = 0;
         }
       }
-    } catch (IllegalAccessException e) {
-      throw new IOException("Not allowed for non-sequential MemoryChunk");
     } catch (MemoryAllocationException e) {
       throw new IOException("Failed to allocate memory");
     }
@@ -136,15 +132,14 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    *
    * USED BY TESTS ONLY.
    * @return the current contents of this output stream, as byte array.
-   * @throws IllegalAccessException if MemoryChunk is used in an inappropriate way.
    */
   @VisibleForTesting
-  byte[] toByteArray() throws IllegalAccessException {
+  byte[] toByteArray() {
     if (dataList.isEmpty()) {
       final byte[] byteArray = new byte[0];
       return byteArray;
     }
-    MemoryChunk lastBuf = dataList.getLast();
+    SequentialMemoryChunk lastBuf = (SequentialMemoryChunk) dataList.getLast();
     // pageSize equals the size of the data filled in the ByteBuffers
     // except for the last ByteBuffer. The size of the data in the
     // ByteBuffer can be obtained by calling MemoryChunk.position().
@@ -155,7 +150,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
     for (final MemoryChunk chunk : dataList) {
       // We use duplicated buffer to read the data so that there is no complicated
       // alteration of position and limit when switching between read and write mode.
-      final MemoryChunk dupChunk = chunk.duplicate();
+      final SequentialMemoryChunk dupChunk = ((SequentialMemoryChunk) chunk).duplicate();
       final ByteBuffer dupBuffer = dupChunk.getBuffer();
       dupBuffer.flip();
       final int byteToWrite = dupBuffer.remaining();
@@ -178,7 +173,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   public List<ByteBuffer> getDirectByteBufferList() {
     List<ByteBuffer> result = new ArrayList<>(dataList.size());
     for (final MemoryChunk chunk : dataList) {
-      final MemoryChunk dupChunk = chunk.duplicate();
+      final SequentialMemoryChunk dupChunk = ((SequentialMemoryChunk) chunk).duplicate();
       final ByteBuffer dupBuffer = dupChunk.getBuffer();
       dupBuffer.flip();
       result.add(dupBuffer);
@@ -186,18 +181,17 @@ public final class DirectByteBufferOutputStream extends OutputStream {
     return result;
   }
 
+  public List<MemoryChunk> getDirectMemoryChunkList() {
+    return dataList;
+  }
+
   /**
    * Returns the size of the data written in this output stream.
    *
    * @return the size of the data
-   * @throws IllegalAccessException if position is not allowed to be accessed.
    */
-  public int size() throws IllegalAccessException {
-    return chunkSize * (dataList.size() - 1) + dataList.getLast().position();
-  }
-
-  public void release() {
-    memoryPoolAssigner.returnChunksToPool(dataList);
+  public int size() {
+    return chunkSize * (dataList.size() - 1) + ((SequentialMemoryChunk) dataList.getLast()).position();
   }
 
   /**

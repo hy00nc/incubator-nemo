@@ -129,7 +129,11 @@ public class MemoryPoolAssigner {
         }
       }
       ByteBuffer buf = pool.remove();
-      return new MemoryChunk(buf, sequential);
+      if (sequential) {
+        return new SequentialMemoryChunk(buf);
+      } else {
+        return new NonSequentialMemoryChunk(buf);
+      }
     }
 
     /**
@@ -141,7 +145,7 @@ public class MemoryPoolAssigner {
       ByteBuffer buf = chunk.getBuffer();
       buf.clear();
       pool.add(buf);
-      chunk.free();
+      chunk.release();
     }
   }
 }

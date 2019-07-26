@@ -176,8 +176,6 @@ public final class FileBlock<K extends Serializable> implements Block<K> {
         writeSerializedPartitions(convertedPartitions);
       } catch (final IOException e) {
         throw new BlockWriteException(e);
-      } catch (final IllegalAccessException e) {
-        throw new BlockWriteException(e);
       } catch (final MemoryAllocationException e) {
         throw new BlockWriteException(e);
       }

@@ -162,6 +162,7 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
       } catch (final IllegalAccessException e) {
         throw new IOException();
       }
+      bytesOutputStream.release();
       this.committed = true;
     }
   }

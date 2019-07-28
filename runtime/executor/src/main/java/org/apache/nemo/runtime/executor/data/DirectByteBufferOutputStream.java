@@ -178,8 +178,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   public List<ByteBuffer> getDirectByteBufferList() {
     List<ByteBuffer> result = new ArrayList<>(dataList.size());
     for (final MemoryChunk chunk : dataList) {
-      final MemoryChunk dupChunk = chunk.duplicate();
-      final ByteBuffer dupBuffer = dupChunk.getBuffer();
+      final ByteBuffer dupBuffer = chunk.getBuffer().duplicate();
       dupBuffer.flip();
       result.add(dupBuffer);
     }

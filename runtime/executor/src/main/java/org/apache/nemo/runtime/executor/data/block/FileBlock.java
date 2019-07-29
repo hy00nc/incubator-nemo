@@ -19,6 +19,7 @@
 package org.apache.nemo.runtime.executor.data.block;
 
 import org.apache.nemo.common.KeyRange;
+import org.apache.nemo.runtime.executor.data.MemoryAllocationException;
 import org.apache.nemo.runtime.executor.data.MemoryPoolAssigner;
 import org.apache.nemo.common.Pair;
 import org.apache.nemo.common.exception.BlockFetchException;
@@ -147,7 +148,7 @@ public final class FileBlock<K extends Serializable> implements Block<K> {
           nonCommittedPartitionsMap.put(key, partition);
         }
         partition.write(element);
-      } catch (final IOException e) {
+      } catch (final IOException | MemoryAllocationException e) {
         throw new BlockWriteException(e);
       }
     }
@@ -170,9 +171,7 @@ public final class FileBlock<K extends Serializable> implements Block<K> {
         final Iterable<SerializedPartition<K>> convertedPartitions =
           DataUtil.convertToSerPartitions(serializer, partitions, memoryPoolAssigner);
         writeSerializedPartitions(convertedPartitions);
-      } catch (final IOException e) {
-        throw new BlockWriteException(e);
-      } catch (final IllegalAccessException e) {
+      } catch (final IOException | IllegalAccessException | MemoryAllocationException e) {
         throw new BlockWriteException(e);
       }
     }

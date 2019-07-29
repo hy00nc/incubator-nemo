@@ -73,20 +73,6 @@ public class MemoryPoolAssigner {
   }
 
   /**
-   * Returns list of {@link MemoryChunk}s to be used by consumers.
-   *
-   * @param numPages indicates the number of MemoryChunks
-   * @return list of {@link MemoryChunk}s
-   * @throws MemoryAllocationException
-   */
-  public List<MemoryChunk> allocateChunks(final int numPages,
-                                          final boolean sequential) throws MemoryAllocationException {
-    final ArrayList<MemoryChunk> chunks = new ArrayList<MemoryChunk>(numPages);
-    allocateChunks(chunks, numPages, sequential);
-    return chunks;
-  }
-
-  /**
    * Allocates list of {@link MemoryChunk}s to target list.
    *
    * @param target    where the MemoryChunks are allocated
@@ -128,6 +114,14 @@ public class MemoryPoolAssigner {
     }
   }
 
+  /**
+   * Returns the chunk size.
+   *
+   * @return chunk size.
+   */
+  public int returnSize() {
+    return chunkSize;
+  }
   /**
    *
    * Supports off-heap memory pool.

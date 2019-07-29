@@ -19,6 +19,7 @@
 package org.apache.nemo.runtime.executor.data.partition;
 
 import org.apache.nemo.runtime.executor.data.DirectByteBufferOutputStream;
+import org.apache.nemo.runtime.executor.data.MemoryAllocationException;
 import org.apache.nemo.runtime.executor.data.MemoryPoolAssigner;
 import org.apache.nemo.common.coder.EncoderFactory;
 import org.apache.nemo.runtime.executor.data.streamchainer.Serializer;
@@ -69,7 +70,7 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
    */
   public SerializedPartition(final K key,
                              final Serializer serializer,
-                             final MemoryPoolAssigner memoryPoolAssigner) throws IOException {
+                             final MemoryPoolAssigner memoryPoolAssigner) throws IOException, MemoryAllocationException {
     this.key = key;
     this.serializedData = new byte[0];
     this.length = 0;

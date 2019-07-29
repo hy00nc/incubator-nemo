@@ -207,6 +207,9 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   }
 
   public void release() {
+    if (released) {
+      throw new IllegalStateException("This output stream is already released.");
+    }
     memoryPoolAssigner.returnChunks(dataList);
     released = true;
   }

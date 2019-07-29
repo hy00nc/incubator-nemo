@@ -149,7 +149,7 @@ public class MemoryPoolAssigner {
       return new MemoryChunk(memory, sequential);
     }
 
-    synchronized MemoryChunk requestChunkFromPool(final boolean sequential) throws MemoryAllocationException {
+    MemoryChunk requestChunkFromPool(final boolean sequential) throws MemoryAllocationException {
       if (available.isEmpty()) {
         return allocateNewChunk(true);
       }
@@ -165,7 +165,6 @@ public class MemoryPoolAssigner {
     void returnChunkToPool(final MemoryChunk chunk) {
       ByteBuffer buf = chunk.getBuffer();
       buf.clear();
-      buf.compact();
       available.add(buf);
       chunk.free();
     }

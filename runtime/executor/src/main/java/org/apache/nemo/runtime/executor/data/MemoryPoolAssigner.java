@@ -50,6 +50,8 @@ public class MemoryPoolAssigner {
 
   private final long memorySize;
 
+  private final Object obj = new Object(); // for locks
+
   @Inject
   public MemoryPoolAssigner(@Parameter(JobConf.MemoryPoolSize.class) final long memorySize,
                             @Parameter(JobConf.ChunkSize.class) final int chunkSize) {
@@ -147,7 +149,7 @@ public class MemoryPoolAssigner {
       return new MemoryChunk(memory, sequential);
     }
 
-    MemoryChunk requestChunkFromPool(final boolean sequential) throws MemoryAllocationException {
+    synchronized MemoryChunk requestChunkFromPool(final boolean sequential) throws MemoryAllocationException {
       if (available.isEmpty()) {
         return allocateNewChunk(true);
       }

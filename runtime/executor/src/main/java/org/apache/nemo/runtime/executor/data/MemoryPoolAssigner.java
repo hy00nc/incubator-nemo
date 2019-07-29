@@ -25,7 +25,6 @@ import org.apache.nemo.conf.JobConf;
 
 import javax.inject.Inject;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -150,7 +149,7 @@ public class MemoryPoolAssigner {
 
     MemoryChunk requestChunkFromPool(final boolean sequential) throws MemoryAllocationException {
       if (available.isEmpty()) {
-        throw new MemoryAllocationException("Ran out of available off-heap memory");
+        return allocateNewChunk(true);
       }
       ByteBuffer buf = available.remove();
       return new MemoryChunk(buf, sequential);

@@ -40,6 +40,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   private LinkedList<MemoryChunk> dataList = new LinkedList<>();
   private MemoryChunk currentBuf;
   private final MemoryPoolAssigner memoryPoolAssigner;
+  private boolean released;
 
   /**
    * Constructor which sets {@code pageSize} as specified {@code size}.
@@ -52,6 +53,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
     this.memoryPoolAssigner = memoryPoolAssigner;
     newLastBuffer();
     currentBuf = dataList.getLast();
+    released = false;
   }
 
   /**
@@ -69,6 +71,9 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    */
   @Override
   public void write(final int b) throws IOException {
+    if (released) {
+      throw new IOException("The outputStream is released");
+    }
     try {
       if (currentBuf.remaining() <= 0) {
         newLastBuffer();
@@ -104,6 +109,9 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    */
   @Override
   public void write(final byte[] b, final int off, final int len) throws IOException {
+    if (released) {
+      throw new IOException("The outputStream is released");
+    }
     int byteToWrite = len;
     int offset = off;
     try {
@@ -175,7 +183,10 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    *
    * @return the {@code LinkedList} of {@code ByteBuffer}s.
    */
-  public List<ByteBuffer> getDirectByteBufferList() {
+  public List<ByteBuffer> getDirectByteBufferList() throws IOException {
+    if (released) {
+      throw new IOException("The outputStream is released");
+    }
     List<ByteBuffer> result = new ArrayList<>(dataList.size());
     for (final MemoryChunk chunk : dataList) {
       final MemoryChunk dupChunk = chunk.duplicate();
@@ -197,6 +208,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
 
   public void release() {
     memoryPoolAssigner.returnChunks(dataList);
+    released = true;
   }
 
   /**

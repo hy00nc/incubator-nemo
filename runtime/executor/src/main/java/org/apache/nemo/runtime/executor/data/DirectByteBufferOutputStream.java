@@ -38,32 +38,17 @@ import java.util.List;
 public final class DirectByteBufferOutputStream extends OutputStream {
 
   private LinkedList<MemoryChunk> dataList = new LinkedList<>();
-  private static final int DEFAULT_PAGE_SIZE = 32768; //32KB
-  private final int pageSize;
-  //private ByteBuffer currentBuf;
   private MemoryChunk currentBuf;
   private final MemoryPoolAssigner memoryPoolAssigner;
-
-  /**
-   * Default constructor.
-   * Sets the {@code pageSize} as default size of 4096 bytes.
-   */
-  public DirectByteBufferOutputStream(final MemoryPoolAssigner memoryPoolAssigner) {
-    this(DEFAULT_PAGE_SIZE, memoryPoolAssigner);
-  }
 
   /**
    * Constructor which sets {@code pageSize} as specified {@code size}.
    * Note that the {@code pageSize} has trade-off between memory fragmentation and
    * native memory (de)allocation overhead.
    *
-   * @param size should be a power of 2 and greater than or equal to 4096.
+   * @param memoryPoolAssigner the memory pool assigner.
    */
-  public DirectByteBufferOutputStream(final int size, final MemoryPoolAssigner memoryPoolAssigner) {
-    if (size < DEFAULT_PAGE_SIZE || (size & (size - 1)) != 0) {
-      throw new IllegalArgumentException("Invalid pageSize");
-    }
-    this.pageSize = size;
+  public DirectByteBufferOutputStream(final MemoryPoolAssigner memoryPoolAssigner) throws MemoryAllocationException {
     this.memoryPoolAssigner = memoryPoolAssigner;
     newLastBuffer();
     currentBuf = dataList.getLast();
@@ -73,7 +58,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    * Allocates new {@link ByteBuffer} with the capacity equal to {@code pageSize}.
    */
   // TODO #388: Off-heap memory management (reuse ByteBuffer)
-  private void newLastBuffer() {
+  private void newLastBuffer() throws MemoryAllocationException {
     dataList.addLast(memoryPoolAssigner.allocateChunk(true));
   }
 
@@ -90,10 +75,12 @@ public final class DirectByteBufferOutputStream extends OutputStream {
         currentBuf = dataList.getLast();
       }
       currentBuf.put((byte) b);
-    } catch (IllegalStateException e) {
+    } catch (final IllegalStateException e) {
       throw new IllegalStateException("MemoryChunk has been freed");
-    } catch (IllegalAccessException e) {
+    } catch (final IllegalAccessException e) {
       throw new IOException("Not allowed for non-sequential MemoryChunk");
+    } catch (final MemoryAllocationException e) {
+      throw new IOException("No memory chunk available");
     }
   }
 
@@ -136,8 +123,10 @@ public final class DirectByteBufferOutputStream extends OutputStream {
           byteToWrite = 0;
         }
       }
-    } catch (IllegalAccessException e) {
+    } catch (final IllegalAccessException e) {
       throw new IOException("Not allowed for non-sequential MemoryChunk");
+    } catch (final MemoryAllocationException e) {
+      throw new IOException("No memory chunk available");
     }
   }
 
@@ -155,12 +144,11 @@ public final class DirectByteBufferOutputStream extends OutputStream {
       return byteArray;
     }
 
-    //ByteBuffer lastBuf = dataList.getLast();
     MemoryChunk lastBuf = dataList.getLast();
     // pageSize equals the size of the data filled in the ByteBuffers
     // except for the last ByteBuffer. The size of the data in the
     // ByteBuffer can be obtained by calling ByteBuffer.position().
-    final int arraySize = pageSize * (dataList.size() - 1) + lastBuf.position();
+    final int arraySize = memoryPoolAssigner.returnSize() * (dataList.size() - 1) + lastBuf.position();
     final byte[] byteArray = new byte[arraySize];
     int start = 0;
 
@@ -204,7 +192,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    * @return the size of the data
    */
   public int size() throws IllegalAccessException {
-    return pageSize * (dataList.size() - 1) + dataList.getLast().position();
+    return memoryPoolAssigner.returnSize() * (dataList.size() - 1) + dataList.getLast().position();
   }
 
   public void release() {

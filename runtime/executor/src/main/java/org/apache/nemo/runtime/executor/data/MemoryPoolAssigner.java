@@ -163,9 +163,9 @@ public class MemoryPoolAssigner {
      * @param chunk
      */
     void returnChunkToPool(final MemoryChunk chunk) {
-      MemoryChunk offHeapChunk = chunk;
-      ByteBuffer buf = offHeapChunk.getBuffer();
+      ByteBuffer buf = chunk.getBuffer();
       buf.clear();
+      buf.compact();
       available.add(buf);
       chunk.free();
     }

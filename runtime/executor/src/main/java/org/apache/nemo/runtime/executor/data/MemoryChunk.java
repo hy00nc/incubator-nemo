@@ -37,7 +37,6 @@ public class MemoryChunk {
   private final ByteBuffer buffer;
   private long address;
   private final long addressLimit;
-  private boolean isFree;
   private final int size;
   private final boolean sequential;
 
@@ -60,7 +59,6 @@ public class MemoryChunk {
     this.size = buffer.capacity();
     this.address = offHeapAddress;
     this.addressLimit = this.address + this.size;
-    this.isFree = false;
     this.sequential = sequential;
   }
 
@@ -133,7 +131,7 @@ public class MemoryChunk {
    * Frees this MemoryChunk. No further operation possible after calling this method.
    */
   public void free() {
-    isFree = true;
+    address = addressLimit + 1;
   }
 
   /**
@@ -142,7 +140,7 @@ public class MemoryChunk {
    * @return true, if the MemoryChunk has been freed, false otherwise.
    */
   public boolean isFree() {
-    return isFree;
+    return address > addressLimit;
   }
 
   /**
@@ -156,7 +154,7 @@ public class MemoryChunk {
     final long pos = address + index;
     if (index >= 0 && pos < addressLimit) {
       return UNSAFE.getByte(pos);
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       throw new IndexOutOfBoundsException();
@@ -172,7 +170,7 @@ public class MemoryChunk {
   public final byte get() throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk.");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     }
     return buffer.get();
@@ -189,7 +187,7 @@ public class MemoryChunk {
     final long pos = address + index;
     if (index >= 0 && pos < addressLimit) {
       UNSAFE.putByte(pos, b);
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       throw new IndexOutOfBoundsException();
@@ -205,7 +203,7 @@ public class MemoryChunk {
   public final void put(final byte b) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk.");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     }
     buffer.put(b);
@@ -230,7 +228,7 @@ public class MemoryChunk {
   public final void get(final byte[] dst) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk.");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     }
     buffer.get(dst);
@@ -257,7 +255,7 @@ public class MemoryChunk {
   public final void put(final byte[] src) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk.");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     }
     buffer.put(src);
@@ -273,7 +271,7 @@ public class MemoryChunk {
     if (index >= 0 && pos <= addressLimit - length) {
       final long arrayAddress = BYTE_ARRAY_BASE_OFFSET + offset;
       UNSAFE.copyMemory(null, pos, dst, arrayAddress, length);
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       throw new IndexOutOfBoundsException();
@@ -291,7 +289,7 @@ public class MemoryChunk {
   public final void get(final byte[] dst, final int offset, final int length) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk.");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     }
     buffer.get(dst, offset, length);
@@ -306,7 +304,7 @@ public class MemoryChunk {
     if (index >= 0 && pos <= addressLimit - length) {
       final long arrayAddress = BYTE_ARRAY_BASE_OFFSET + offset;
       UNSAFE.copyMemory(src, arrayAddress, null, pos, length);
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       throw new IndexOutOfBoundsException();
@@ -324,7 +322,7 @@ public class MemoryChunk {
   public final void put(final byte[] src, final int offset, final int length) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     }
     buffer.put(src, offset, length);
@@ -347,7 +345,7 @@ public class MemoryChunk {
       } else {
         return Character.reverseBytes(UNSAFE.getChar(pos));
       }
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed.");
     } else {
       // index is in fact invalid
@@ -364,7 +362,7 @@ public class MemoryChunk {
   public final char getChar() throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     return buffer.getChar();
@@ -387,7 +385,7 @@ public class MemoryChunk {
       } else {
         UNSAFE.putChar(pos, Character.reverseBytes(value));
       }
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       // index is in fact invalid
@@ -404,7 +402,7 @@ public class MemoryChunk {
   public final void putChar(final char value) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     buffer.putChar(value);
@@ -427,7 +425,7 @@ public class MemoryChunk {
       } else {
         return Short.reverseBytes(UNSAFE.getShort(pos));
       }
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       // index is in fact invalid
@@ -444,7 +442,7 @@ public class MemoryChunk {
   public final short getShort() throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     return buffer.getShort();
@@ -467,7 +465,7 @@ public class MemoryChunk {
       } else {
         UNSAFE.putShort(pos, Short.reverseBytes(value));
       }
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       // index is in fact invalid
@@ -484,7 +482,7 @@ public class MemoryChunk {
   public final void putShort(final short value) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     buffer.putShort(value);
@@ -506,7 +504,7 @@ public class MemoryChunk {
       } else {
         return Integer.reverseBytes(UNSAFE.getInt(pos));
       }
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       // index is in fact invalid
@@ -523,7 +521,7 @@ public class MemoryChunk {
   public final int getInt() throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     return buffer.getInt();
@@ -545,7 +543,7 @@ public class MemoryChunk {
       } else {
         UNSAFE.putInt(pos, Integer.reverseBytes(value));
       }
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       // index is in fact invalid
@@ -562,7 +560,7 @@ public class MemoryChunk {
   public final void putInt(final int value) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     buffer.putInt(value);
@@ -584,7 +582,7 @@ public class MemoryChunk {
       } else {
         return Long.reverseBytes(UNSAFE.getLong(pos));
       }
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       // index is in fact invalid
@@ -601,7 +599,7 @@ public class MemoryChunk {
   public final long getLong() throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     return buffer.getLong();
@@ -640,7 +638,7 @@ public class MemoryChunk {
   public final void putLong(final long value) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     buffer.putLong(value);
@@ -667,7 +665,7 @@ public class MemoryChunk {
   public final float getFloat() throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     return buffer.getFloat();
@@ -694,7 +692,7 @@ public class MemoryChunk {
   public final void putFloat(final float value) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     buffer.putFloat(value);
@@ -721,7 +719,7 @@ public class MemoryChunk {
   public final double getDouble() throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     return buffer.getDouble();
@@ -748,7 +746,7 @@ public class MemoryChunk {
   public final void putDouble(final double value) throws IllegalAccessException {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk");
-    } else if (isFree) {
+    } else if (address > addressLimit) {
       throw new IllegalStateException("This MemoryChunk has been freed");
     }
     buffer.putDouble(value);

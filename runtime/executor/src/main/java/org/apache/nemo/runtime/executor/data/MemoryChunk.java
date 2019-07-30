@@ -93,6 +93,9 @@ public class MemoryChunk {
    * @return  {@link ByteBuffer}
    */
   public ByteBuffer getBuffer() {
+    if (released) {
+      throw new IllegalStateException("MemoryChunk has been released");
+    }
     return buffer;
   }
 
@@ -151,7 +154,7 @@ public class MemoryChunk {
   public final byte get(final int index) {
     final long pos = address + index;
     if (released) {
-      throw new IllegalStateException("MemoryChunk has been freed");
+      throw new IllegalStateException("MemoryChunk has been released");
     } else {
       checkIndex(index, pos, 0);
       return UNSAFE.getByte(pos);
@@ -168,7 +171,7 @@ public class MemoryChunk {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk.");
     } else if (released) {
-      throw new IllegalStateException("MemoryChunk has been freed");
+      throw new IllegalStateException("MemoryChunk has been released");
     }
     return buffer.get();
   }
@@ -183,7 +186,7 @@ public class MemoryChunk {
   public final void put(final int index, final byte b) {
     final long pos = address + index;
     if (released) {
-      throw new IllegalStateException("MemoryChunk has been freed");
+      throw new IllegalStateException("MemoryChunk has been released");
     } else {
       checkIndex(index, pos, 0);
       UNSAFE.putByte(pos, b);
@@ -200,7 +203,7 @@ public class MemoryChunk {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk.");
     } else if (released) {
-      throw new IllegalStateException("MemoryChunk has been freed");
+      throw new IllegalStateException("MemoryChunk has been released");
     }
     buffer.put(b);
   }
@@ -225,7 +228,7 @@ public class MemoryChunk {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk.");
     } else if (released) {
-      throw new IllegalStateException("MemoryChunk has been freed");
+      throw new IllegalStateException("MemoryChunk has been released");
     }
     buffer.get(dst);
   }
@@ -252,7 +255,7 @@ public class MemoryChunk {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk.");
     } else if (released) {
-      throw new IllegalStateException("MemoryChunk has been freed");
+      throw new IllegalStateException("MemoryChunk has been released");
     }
     buffer.put(src);
   }
@@ -270,7 +273,7 @@ public class MemoryChunk {
     if ((offset | length | (offset + length) | (dst.length - (offset + length))) < 0) {
       throw new IndexOutOfBoundsException();
     } else if (released) {
-      throw new IllegalStateException("MemoryChunk has been freed");
+      throw new IllegalStateException("MemoryChunk has been released");
     } else {
       final long pos = address + index;
       checkIndex(index, pos, length);
@@ -291,7 +294,7 @@ public class MemoryChunk {
     if (!sequential) {
       throw new IllegalAccessException("Not allowed for non-sequential MemoryChunk.");
     } else if (released) {
-      throw new IllegalStateException("MemoryChunk has been freed");
+      throw new IllegalStateException("MemoryChunk has been released");
     }
     buffer.get(dst, offset, length);
   }
@@ -309,7 +312,7 @@ public class MemoryChunk {
     if ((offset | length | (offset + length) | (src.length - (offset + length))) < 0) {
       throw new IndexOutOfBoundsException();
     } else if (released) {
-      throw new IllegalStateException("MemoryChunk has been freed");
+      throw new IllegalStateException("MemoryChunk has been released");
     } else {
       final long pos = address + index;
       checkIndex(index, pos, length);

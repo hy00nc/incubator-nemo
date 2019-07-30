@@ -39,6 +39,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   private final int chunkSize;
   private MemoryChunk currentBuf;
   private final MemoryPoolAssigner memoryPoolAssigner;
+  private volatile boolean released;
 
   /**
    * Default constructor.
@@ -70,7 +71,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   @Override
   public void write(final int b) throws IOException {
     try {
-      if (currentBuf.remaining() <= 0) {
+      if (!released && currentBuf.remaining() <= 0) {
         newLastBuffer();
         currentBuf = dataList.getLast();
       }
@@ -108,7 +109,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
     int offset = off;
     try {
       while (byteToWrite > 0) {
-        if (currentBuf.remaining() <= 0) {
+        if (!released && currentBuf.remaining() <= 0) {
           newLastBuffer();
           currentBuf = dataList.getLast();
         }
@@ -144,6 +145,9 @@ public final class DirectByteBufferOutputStream extends OutputStream {
       final byte[] byteArray = new byte[0];
       return byteArray;
     }
+    if (released) {
+      throw new IllegalStateException("This output stream was released");
+    }
     MemoryChunk lastBuf = dataList.getLast();
     // pageSize equals the size of the data filled in the ByteBuffers
     // except for the last ByteBuffer. The size of the data in the
@@ -176,6 +180,9 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    * @return the {@code LinkedList} of {@code ByteBuffer}s.
    */
   public List<ByteBuffer> getDirectByteBufferList() {
+    if (released) {
+      throw new IllegalStateException("This output stream was released");
+    }
     List<ByteBuffer> result = new ArrayList<>(dataList.size());
     for (final MemoryChunk chunk : dataList) {
       final MemoryChunk dupChunk = chunk.duplicate();
@@ -198,6 +205,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
 
   public void release() {
     memoryPoolAssigner.returnChunksToPool(dataList);
+    released = true;
   }
 
   /**

@@ -627,7 +627,7 @@ public class MemoryChunk {
    */
   public final void putLong(final int index, final long value) {
     final long pos = address + index;
-    if (released) {
+    if (address > addressLimit) {
       throw new IllegalStateException("MemoryChunk has been freed");
     } else {
       checkIndex(index, pos, LONG_SIZE);

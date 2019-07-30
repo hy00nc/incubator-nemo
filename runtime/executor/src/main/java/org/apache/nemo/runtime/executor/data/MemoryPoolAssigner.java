@@ -27,7 +27,6 @@ import org.apache.nemo.conf.JobConf;
 import javax.inject.Inject;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -69,32 +68,8 @@ public class MemoryPoolAssigner {
     if (totalNumPages < 1) {
       throw new IllegalArgumentException("The given amount of memory amounted to less than one page.");
     }
-
-    this.memoryPool = new MemoryPool(totalNumPages, chunkSize);
-  }
-
-  /**
-   * Allocates list of {@link MemoryChunk}s to target list.
-   *
-   * @param target    where the MemoryChunks are allocated
-   * @param numChunks indicates the number of MemoryChunks
-   * @throws MemoryAllocationException
-   */
-  public void allocateChunks(final List<MemoryChunk> target, final int numChunks, final boolean sequential)
-    throws MemoryAllocationException {
-
-    if (numChunks > (memoryPool.getNumOfAvailableMemoryChunks())) {
-      throw new MemoryAllocationException("Could not allocate " + numChunks + " pages. Only "
-        + (memoryPool.getNumOfAvailableMemoryChunks())
-        + " pages are remaining.");
-    }
-
-    for (int i = numChunks; i > 0; i--) {
-      MemoryChunk chunk = memoryPool.requestChunkFromPool(sequential);
-      target.add(chunk);
-    }
     this.chunkSize = chunkSizeKb * 1024;
-    this.memoryPool = new MemoryPool((int) numChunks, this.chunkSize);
+    this.memoryPool = new MemoryPool(totalNumPages, chunkSize);
   }
 
   /**
@@ -152,10 +127,10 @@ public class MemoryPoolAssigner {
     }
 
     MemoryChunk requestChunkFromPool(final boolean sequential) throws MemoryAllocationException {
-      if (available.isEmpty()) {
+      if (pool.isEmpty()) {
         return allocateNewChunk(true);
       }
-      ByteBuffer buf = available.remove();
+      ByteBuffer buf = pool.remove();
       return new MemoryChunk(buf, sequential);
     }
 

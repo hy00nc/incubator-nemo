@@ -44,8 +44,8 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   /**
    * Default constructor.
    *
-   * @param memoryPoolAssigner  for memory allocation.
-   * @throws MemoryAllocationException  if fails to allocate new memory.
+   * @param memoryPoolAssigner for memory allocation.
+   * @throws MemoryAllocationException if fails to allocate new memory.
    */
   public DirectByteBufferOutputStream(final MemoryPoolAssigner memoryPoolAssigner) throws MemoryAllocationException {
     this.chunkSize = memoryPoolAssigner.getChunkSize();
@@ -58,7 +58,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   /**
    * Allocates new {@link ByteBuffer} with the capacity equal to {@code pageSize}.
    *
-   * @throws MemoryAllocationException  if fail to allocate memory chunk.
+   * @throws MemoryAllocationException if fail to allocate memory chunk.
    */
   private void newLastBuffer() throws MemoryAllocationException {
     dataList.addLast(memoryPoolAssigner.allocateChunk(true));
@@ -67,7 +67,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   /**
    * Writes the specified byte to this output stream.
    *
-   * @param   b   the byte to be written.
+   * @param b the byte to be written.
    */
   @Override
   public void write(final int b) throws IOException {
@@ -103,9 +103,9 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    * Writes {@code len} bytes from the specified byte array
    * starting at offset {@code off} to this output stream.
    *
-   * @param   b     the data.
-   * @param   off   the start offset in the data.
-   * @param   len   the number of bytes to write.
+   * @param b   the data.
+   * @param off the start offset in the data.
+   * @param len the number of bytes to write.
    */
   @Override
   public void write(final byte[] b, final int off, final int len) throws IOException {
@@ -141,8 +141,9 @@ public final class DirectByteBufferOutputStream extends OutputStream {
 
   /**
    * Creates a byte array that contains the whole content currently written in this output stream.
-   *
+   * <p>
    * USED BY TESTS ONLY.
+   *
    * @return the current contents of this output stream, as byte array.
    * @throws IllegalAccessException if MemoryChunk is used in an inappropriate way.
    */
@@ -189,37 +190,38 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   public List<ByteBuffer> getDirectByteBufferList() throws IOException {
     if (released) {
       throw new IOException("The outputStream is released");
-    List<ByteBuffer> result = new ArrayList<>(dataList.size());
-    for (final MemoryChunk chunk : dataList) {
-      final MemoryChunk dupChunk = chunk.duplicate();
-      final ByteBuffer dupBuffer = dupChunk.getBuffer();
-      dupBuffer.flip();
-      result.add(dupBuffer);
     }
-    return result;
-  }
-
-  /**
-   * Returns the size of the data written in this output stream.
-   *
-   * @return the size of the data
-   * @throws IllegalAccessException if position is not allowed to be accessed.
-   */
-  public int size() throws IllegalAccessException {
-    return chunkSize * (dataList.size() - 1) + dataList.getLast().position();
-  }
-
-  public void release() {
-    if (released) {
-      throw new IllegalStateException("This output stream is already released.");
+      List<ByteBuffer> result = new ArrayList<>(dataList.size());
+      for (final MemoryChunk chunk : dataList) {
+        final MemoryChunk dupChunk = chunk.duplicate();
+        final ByteBuffer dupBuffer = dupChunk.getBuffer();
+        dupBuffer.flip();
+        result.add(dupBuffer);
+      }
+      return result;
     }
-    memoryPoolAssigner.returnChunks(dataList);
-    released = true;
-  }
 
-  /**
-   * Closing this output stream has no effect.
-   */
-  public void close() {
-  }
+    /**
+     * Returns the size of the data written in this output stream.
+     *
+     * @return the size of the data
+     * @throws IllegalAccessException if position is not allowed to be accessed.
+     */
+    public int size() throws IllegalAccessException {
+      return chunkSize * (dataList.size() - 1) + dataList.getLast().position();
+    }
+
+    public void release() {
+      if (released) {
+        throw new IllegalStateException("This output stream is already released.");
+      }
+      memoryPoolAssigner.returnChunksToPool(dataList);
+      released = true;
+    }
+
+    /**
+     * Closing this output stream has no effect.
+     */
+    public void close() {
+    }
 }

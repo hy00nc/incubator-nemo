@@ -167,21 +167,20 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   }
 
   /**
-   * Returns the list of {@code ByteBuffer}s that contains the written data.
-   * List of flipped and duplicated {@link ByteBuffer}s are returned which has independent
+   * Returns the list of {@code MemoryChunk}s that contains the written data.
+   * List of flipped and duplicated {@link MemoryChunk}s are returned, which has independent
    * position and limit, to reduce erroneous data read/write.
    * This function has to be called when intended to read from the start of the list of
-   * {@link ByteBuffer}s, not for additional write.
+   * {@link MemoryChunk}s, not for additional write.
    *
-   * @return the {@code LinkedList} of {@code ByteBuffer}s.
+   * @return the {@code LinkedList} of {@code MemoryChunk}s.
    */
-  public List<ByteBuffer> getDirectByteBufferList() {
-    List<ByteBuffer> result = new ArrayList<>(dataList.size());
-    for (final MemoryChunk chunk : dataList) {
+  public List<MemoryChunk> getMemoryChunkList() {
+    List<MemoryChunk> result = new LinkedList<>();
+    for (final MemoryChunk chunk: dataList) {
       final MemoryChunk dupChunk = chunk.duplicate();
-      final ByteBuffer dupBuffer = dupChunk.getBuffer();
-      dupBuffer.flip();
-      result.add(dupBuffer);
+      dupChunk.getBuffer().flip();
+      result.add(dupChunk);
     }
     return result;
   }
@@ -194,10 +193,6 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    */
   public int size() throws IllegalAccessException {
     return chunkSize * (dataList.size() - 1) + dataList.getLast().position();
-  }
-
-  public void release() {
-    memoryPoolAssigner.returnChunksToPool(dataList);
   }
 
   /**

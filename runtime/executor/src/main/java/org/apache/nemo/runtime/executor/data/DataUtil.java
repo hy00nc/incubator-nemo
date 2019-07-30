@@ -126,10 +126,10 @@ public final class DataUtil {
         wrappedStream.close();
         // Note that serializedBytes include invalid bytes.
         // So we have to use it with the actualLength by using size() whenever needed.
-        final List<ByteBuffer> serializedBufList = bytesOutputStream.getDirectByteBufferList();
+        final List<MemoryChunk> serializedBufList = bytesOutputStream.getMemoryChunkList();
         final int actualLength = bytesOutputStream.size();
         serializedPartitions.add(
-          new SerializedPartition<>(partitionToConvert.getKey(), serializedBufList, actualLength));
+          new SerializedPartition<>(partitionToConvert.getKey(), serializedBufList, actualLength, memoryPoolAssigner));
       }
     }
     return serializedPartitions;

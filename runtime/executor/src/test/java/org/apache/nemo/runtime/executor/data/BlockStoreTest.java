@@ -108,7 +108,6 @@ public final class BlockStoreTest {
   private List<List<NonSerializedPartition<Integer>>> hashedBlockPartitionList;
   private List<KeyRange> readKeyRangeList;
   private List<List<Iterable>> expectedDataInRange;
-  private static final MemoryPoolAssigner memoryPoolAssigner = new MemoryPoolAssigner(3000 * 1024, 32 * 1024);
 
   private String getTaskId(final int index) {
     return RuntimeIdManager.generateTaskId("STAGE", index, 0);
@@ -325,7 +324,7 @@ public final class BlockStoreTest {
         public Boolean call() {
           try {
             final String blockId = blockIdList.get(writeTaskIdx);
-            final Block block = writerSideStore.createBlock(blockId, memoryPoolAssigner);
+            final Block block = writerSideStore.createBlock(blockId);
             for (final NonSerializedPartition<Integer> partition : partitionsPerBlock.get(writeTaskIdx)) {
               final Iterable data = partition.getData();
               data.forEach(element -> block.write(partition.getKey(), element));
@@ -422,7 +421,7 @@ public final class BlockStoreTest {
       @Override
       public Boolean call() {
         try {
-          final Block block = writerSideStore.createBlock(concBlockId, memoryPoolAssigner);
+          final Block block = writerSideStore.createBlock(concBlockId);
           final Iterable data = concBlockPartition.getData();
           data.forEach(element -> block.write(concBlockPartition.getKey(), element));
           block.commit();
@@ -510,7 +509,7 @@ public final class BlockStoreTest {
         public Boolean call() {
           try {
             final String blockId = hashedBlockIdList.get(writeTaskIdx);
-            final Block block = writerSideStore.createBlock(blockId, memoryPoolAssigner);
+            final Block block = writerSideStore.createBlock(blockId);
             for (final NonSerializedPartition<Integer> partition : hashedBlockPartitionList.get(writeTaskIdx)) {
               final Iterable data = partition.getData();
               data.forEach(element -> block.write(partition.getKey(), element));

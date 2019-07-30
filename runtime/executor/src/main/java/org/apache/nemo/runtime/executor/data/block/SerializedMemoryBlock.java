@@ -54,6 +54,7 @@ public final class SerializedMemoryBlock<K extends Serializable> implements Bloc
    *
    * @param blockId    the ID of this block.
    * @param serializer the {@link Serializer}.
+   * @param memoryPoolAssigner  the MemoryPoolAssigner for memory allocation.
    */
   public SerializedMemoryBlock(final String blockId,
                                final Serializer serializer,
@@ -240,7 +241,9 @@ public final class SerializedMemoryBlock<K extends Serializable> implements Bloc
     return committed;
   }
 
-  @Override
+  /**
+   * Releases the resource (i.e., off-heap memory) that the block holds.
+   */
   public void release() {
     for (SerializedPartition partition: serializedPartitions) {
       partition.release();

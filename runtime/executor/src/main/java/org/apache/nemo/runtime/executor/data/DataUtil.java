@@ -104,8 +104,11 @@ public final class DataUtil {
    * @param serializer          the serializer for serialization.
    * @param partitionsToConvert the partitions to convert.
    * @param <K>                 the key type of the partitions.
+   * @param memoryPoolAssigner  the memory pool assigner for DirectByteBufferOutputStream.
    * @return the converted {@link SerializedPartition}s.
    * @throws IOException if fail to convert.
+   * @throws IllegalAccessException if fail to get actualLength of the output stream.
+   * @throws MemoryAllocationException  if fail to allocate memory.
    */
   public static <K extends Serializable> Iterable<SerializedPartition<K>> convertToSerPartitions(
     final Serializer serializer,

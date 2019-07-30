@@ -66,7 +66,9 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
    *
    * @param key        the key of this partition.
    * @param serializer the serializer to be used to serialize data.
+   * @param memoryPoolAssigner  the memory pool assigner for memory allocation.
    * @throws IOException if fail to chain the output stream.
+   * @throws MemoryAllocationException  if fail to allocate memory.
    */
   public SerializedPartition(final K key,
                              final Serializer serializer,
@@ -156,7 +158,7 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
       this.dataList = bytesOutputStream.getDirectByteBufferList();
       try {
         this.length = bytesOutputStream.size();
-      } catch (IllegalAccessException e) {
+      } catch (final IllegalAccessException e) {
         throw new IOException();
       }
       this.committed = true;
@@ -238,6 +240,8 @@ public final class SerializedPartition<K> implements Partition<byte[], K> {
    * Releases the off-heap memory that this SerializedPartition holds.
    */
   public void release() {
-    bytesOutputStream.release();
+    if (offheap) {
+      bytesOutputStream.release();
+    }
   }
 }

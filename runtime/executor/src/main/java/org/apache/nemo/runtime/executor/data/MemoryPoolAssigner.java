@@ -18,6 +18,7 @@
  */
 package org.apache.nemo.runtime.executor.data;
 
+import net.jcip.annotations.ThreadSafe;
 import org.apache.reef.tang.annotations.Parameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ import org.apache.nemo.conf.JobConf;
 import javax.inject.Inject;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -35,32 +37,30 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *
  * MemoryPoolAssigner currently supports allocation of off-heap memory only.
  *
- * The MemoryPoolAssigner pre-allocates all memory at the start. Memory will be occupied and reserved from start on,
- * which means that no OutOfMemoryError comes while requesting memory. Released memory will return to the MemoryPool.
+ * The MemoryPoolAssigner pre-allocates user-defined amount of memory at the start.
+ * More memory can be allocated on-demand, but if there is no more memory to allocate, MemoryAllocationException
+ * is thrown and the job fails. // TODO #397: Separation of JVM heap region and off-heap memory region
  */
+@ThreadSafe
 public class MemoryPoolAssigner {
 
   private static final Logger LOG = LoggerFactory.getLogger(MemoryPoolAssigner.class.getName());
 
-  private static final int MIN_CHUNK_SIZE = 4 * 1024; // 4KB
-
-  private final MemoryPool memoryPool;
-
   private final int chunkSize;
 
-  private final long memorySize;
+  private static final int MIN_CHUNK_SIZE_KB = 4;
+
+  private final MemoryPool memoryPool;
 
   private final Object obj = new Object(); // for locks
 
   @Inject
-  public MemoryPoolAssigner(@Parameter(JobConf.MemoryPoolSize.class) final long memorySize,
-                            @Parameter(JobConf.ChunkSize.class) final int chunkSize) {
-    if (chunkSize < MIN_CHUNK_SIZE) {
+  public MemoryPoolAssigner(@Parameter(JobConf.MemoryPoolSizeMb.class) final int memorySizeMb,
+                            @Parameter(JobConf.ChunkSizeKb.class) final int chunkSizeKb) {
+    if (chunkSizeKb < MIN_CHUNK_SIZE_KB) {
       throw new IllegalArgumentException("Chunk size too small. Minimum chunk size is 4KB");
     }
-    this.memorySize = memorySize;
-    this.chunkSize = chunkSize;
-    final long numChunks = memorySize / chunkSize;
+    final long numChunks = (long) memorySizeMb * 1024 / chunkSizeKb;
     if (numChunks > Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Too many pages to allocate (exceeds MAX_INT)");
     }
@@ -93,12 +93,16 @@ public class MemoryPoolAssigner {
       MemoryChunk chunk = memoryPool.requestChunkFromPool(sequential);
       target.add(chunk);
     }
+    this.chunkSize = chunkSizeKb * 1024;
+    this.memoryPool = new MemoryPool((int) numChunks, this.chunkSize);
   }
 
   /**
    * Returns a single {@link MemoryChunk} from {@link MemoryPool}.
    *
+   * @param sequential whether the requested chunk is sequential.
    * @return a MemoryChunk
+   * @throws MemoryAllocationException if fails to allocate MemoryChunk.
    */
   public MemoryChunk allocateChunk(final boolean sequential) throws MemoryAllocationException {
     return memoryPool.requestChunkFromPool(sequential);
@@ -107,40 +111,38 @@ public class MemoryPoolAssigner {
   /**
    * Returns all the MemoryChunks in the given List of MemoryChunks.
    *
-   * @param target
+   * @param target  the list of MemoryChunks to be returned to the memory pool.
    */
-  public void returnChunks(final List<MemoryChunk> target) {
+  public void returnChunksToPool(final List<MemoryChunk> target) {
     for (final MemoryChunk chunk: target) {
       memoryPool.returnChunkToPool(chunk);
     }
   }
 
   /**
-   * Returns the chunk size.
    *
-   * @return chunk size.
+   * @return the chunk size in bytes.
    */
-  public int returnSize() {
+  public int getChunkSize() {
     return chunkSize;
   }
+
   /**
-   *
-   * Supports off-heap memory pool.
-   * off-heap is pre-allocated and managed. on-heap memory is used when off-heap memory runs out.
-   *
+   * Memory pool that utilizes off-heap memory.
+   * Supports pre-allocation of memory according to user specification.
    */
+  @ThreadSafe
   private class MemoryPool {
 
-    private final ConcurrentLinkedQueue<ByteBuffer> available;
+    private final ConcurrentLinkedQueue<ByteBuffer> pool;
     private final int chunkSize;
 
     MemoryPool(final int numInitialChunks, final int chunkSize) {
       this.chunkSize = chunkSize;
-      this.available = new ConcurrentLinkedQueue<>();
-
-      /** Pre-allocation of off-heap memory*/
+      this.pool = new ConcurrentLinkedQueue<>();
+      // pre-allocation
       for (int i = 0; i < numInitialChunks; i++) {
-        this.available.add(ByteBuffer.allocateDirect(chunkSize));
+        pool.add(ByteBuffer.allocateDirect(chunkSize));
       }
     }
 
@@ -158,23 +160,15 @@ public class MemoryPoolAssigner {
     }
 
     /**
-     * Only off-heap chunk is returned to the pool.
+     * Returns MemoryChunk back to memory pool.
      *
-     * @param chunk
+     * @param chunk the target MemoryChunk to be returned to the pool.
      */
     void returnChunkToPool(final MemoryChunk chunk) {
       ByteBuffer buf = chunk.getBuffer();
       buf.clear();
-      available.add(buf);
+      pool.add(buf);
       chunk.free();
-    }
-
-    protected int getNumOfAvailableMemoryChunks() {
-      return available.size();
-    }
-
-    void clear() {
-      available.clear();
     }
   }
 }

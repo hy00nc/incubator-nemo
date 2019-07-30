@@ -85,9 +85,6 @@ public final class BlockManagerWorker {
   private final Map<String, AtomicInteger> blockToRemainingRead;
   private final BlockTransferThrottler blockTransferThrottler;
 
-  // Memory pool assigner
-  private final MemoryPoolAssigner memoryPoolAssigner;
-
   /**
    * Constructor.
    *
@@ -112,8 +109,7 @@ public final class BlockManagerWorker {
                              final PersistentConnectionToMasterMap persistentConnectionToMasterMap,
                              final ByteTransfer byteTransfer,
                              final SerializerManager serializerManager,
-                             final BlockTransferThrottler blockTransferThrottler,
-                             final MemoryPoolAssigner memoryPoolAssigner) {
+                             final BlockTransferThrottler blockTransferThrottler) {
     this.executorId = executorId;
     this.memoryStore = memoryStore;
     this.serializedMemoryStore = serializedMemoryStore;
@@ -126,7 +122,6 @@ public final class BlockManagerWorker {
     this.serializerManager = serializerManager;
     this.pendingBlockLocationRequest = new ConcurrentHashMap<>();
     this.blockTransferThrottler = blockTransferThrottler;
-    this.memoryPoolAssigner = memoryPoolAssigner;
   }
 
   //////////////////////////////////////////////////////////// Main public methods
@@ -142,7 +137,7 @@ public final class BlockManagerWorker {
   public Block createBlock(final String blockId,
                            final DataStoreProperty.Value blockStore) throws BlockWriteException {
     final BlockStore store = getBlockStore(blockStore);
-    return store.createBlock(blockId, memoryPoolAssigner);
+    return store.createBlock(blockId);
   }
 
   /**

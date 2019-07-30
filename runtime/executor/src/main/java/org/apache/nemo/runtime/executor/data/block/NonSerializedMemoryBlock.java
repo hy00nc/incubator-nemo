@@ -54,6 +54,7 @@ public final class NonSerializedMemoryBlock<K extends Serializable> implements B
    *
    * @param blockId    the ID of this block.
    * @param serializer the {@link Serializer}.
+   * @param memoryPoolAssigner  the MemoryPoolAssigner for memory allocation.
    */
   public NonSerializedMemoryBlock(final String blockId,
                                   final Serializer serializer,
@@ -221,9 +222,5 @@ public final class NonSerializedMemoryBlock<K extends Serializable> implements B
   @Override
   public synchronized boolean isCommitted() {
     return committed;
-  }
-
-  @Override
-  public void release() { //do nothing
   }
 }

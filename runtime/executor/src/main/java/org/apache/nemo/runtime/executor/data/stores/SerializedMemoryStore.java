@@ -38,19 +38,21 @@ public final class SerializedMemoryStore extends LocalBlockStore {
    * Constructor.
    *
    * @param serializerManager the serializer manager.
+   * @param memoryPoolAssigner the memory pool assigner.
    */
   @Inject
-  private SerializedMemoryStore(final SerializerManager serializerManager) {
-    super(serializerManager);
+  private SerializedMemoryStore(final SerializerManager serializerManager,
+                                final MemoryPoolAssigner memoryPoolAssigner) {
+    super(serializerManager, memoryPoolAssigner);
   }
 
   /**
-   * @see BlockStore#createBlock(String, MemoryPoolAssigner)
+   * @see BlockStore#createBlock(String)
    */
   @Override
-  public Block createBlock(final String blockId, final MemoryPoolAssigner memoryPoolAssigner) {
+  public Block createBlock(final String blockId) {
     final Serializer serializer = getSerializerFromWorker(blockId);
-    return new SerializedMemoryBlock(blockId, serializer, memoryPoolAssigner);
+    return new SerializedMemoryBlock(blockId, serializer, getMemoryPoolAssigner());
   }
 
   /**
@@ -76,7 +78,7 @@ public final class SerializedMemoryStore extends LocalBlockStore {
    */
   @Override
   public boolean deleteBlock(final String blockId) {
-    Block block = getBlockMap().get(blockId);
+    SerializedMemoryBlock block = (SerializedMemoryBlock) getBlockMap().get(blockId);
     block.release();
     return getBlockMap().remove(blockId) != null;
   }

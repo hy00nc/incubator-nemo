@@ -35,7 +35,6 @@ import org.apache.nemo.runtime.executor.data.streamchainer.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import java.io.ByteArrayInputStream;
@@ -69,7 +68,6 @@ public final class FileBlock<K extends Serializable> implements Block<K> {
   private final Serializer serializer;
   private final String filePath;
   private final FileMetadata<K> metadata;
-  @Nullable
   private final MemoryPoolAssigner memoryPoolAssigner;
 
   /**
@@ -79,6 +77,7 @@ public final class FileBlock<K extends Serializable> implements Block<K> {
    * @param serializer the {@link Serializer}.
    * @param filePath   the path of the file that this block will be stored.
    * @param metadata   the metadata for this block.
+   * @param memoryPoolAssigner  the MemoryPoolAssigner for memory allocation.
    */
   public FileBlock(final String blockId,
                    final Serializer serializer,
@@ -91,18 +90,6 @@ public final class FileBlock<K extends Serializable> implements Block<K> {
     this.filePath = filePath;
     this.metadata = metadata;
     this.memoryPoolAssigner = memoryPoolAssigner;
-  }
-
-  public FileBlock(final String blockId,
-                   final Serializer serializer,
-                   final String filePath,
-                   final FileMetadata<K> metadata) {
-    this.id = blockId;
-    this.nonCommittedPartitionsMap = new HashMap<>();
-    this.serializer = serializer;
-    this.filePath = filePath;
-    this.metadata = metadata;
-    this.memoryPoolAssigner = null;
   }
 
   /**
@@ -402,9 +389,5 @@ public final class FileBlock<K extends Serializable> implements Block<K> {
   @Override
   public boolean isCommitted() {
     return metadata.isCommitted();
-  }
-
-  @Override
-  public void release() { //do nothing
   }
 }

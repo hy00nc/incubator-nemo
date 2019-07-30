@@ -42,7 +42,7 @@ import java.util.*;
 public final class BlockTest {
   private Serializer serializer;
   private Map<Integer, List<Integer>> testData;
-  private static final MemoryPoolAssigner memoryPoolAssigner = new MemoryPoolAssigner(100 * 1024, 32 * 1024);
+  private MemoryPoolAssigner memoryPoolAssigner;
 
   /**
    * Generates the test data and serializer.
@@ -53,6 +53,7 @@ public final class BlockTest {
   public void setUp() throws Exception {
     serializer = new Serializer<>(IntEncoderFactory.of(), IntDecoderFactory.of(), new ArrayList<>(), new ArrayList<>());
     testData = new HashMap<>();
+    memoryPoolAssigner = new MemoryPoolAssigner(1, 32);
 
     final List<Integer> list1 = Collections.singletonList(1);
     final List<Integer> list2 = Arrays.asList(1, 2);
@@ -97,7 +98,7 @@ public final class BlockTest {
     try {
       new File(tmpDir).mkdirs();
       final LocalFileMetadata<Integer> metadata = new LocalFileMetadata<>();
-      final Block<Integer> block = new FileBlock<>("testBlock", serializer, filePath, metadata);
+      final Block<Integer> block = new FileBlock<>("testBlock", serializer, filePath, metadata, memoryPoolAssigner);
       testBlock(block);
     } finally {
       FileUtils.deleteDirectory(new File(tmpDir));

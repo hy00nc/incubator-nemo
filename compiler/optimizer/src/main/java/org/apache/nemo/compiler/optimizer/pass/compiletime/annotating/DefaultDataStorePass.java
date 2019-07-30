@@ -38,7 +38,7 @@ public final class DefaultDataStorePass extends AnnotatingPass {
 
   @Override
   public IRDAG apply(final IRDAG dag) {
-    dag.getVertices().forEach(vertex -> { // Initialize the DataStore of the DAG with SerializedMemoryStore.
+    dag.getVertices().forEach(vertex -> {
       final List<IREdge> inEdges = dag.getIncomingEdgesOf(vertex);
       inEdges.forEach(edge ->
         edge.setPropertyPermanently(DataStoreProperty.of(DataStoreProperty.Value.SerializedMemoryStore)));

@@ -290,19 +290,19 @@ public final class JobConf extends ConfigurationModuleBuilder {
 
   /**
    * Off-heap memory pool size of the executor.
-   * TODO#397: Configuration option for pre-allocation and max off-heap memory.
    */
+  // TODO #397: Separation of JVM heap region and off-heap memory region
   @NamedParameter(doc = "The size of off-heap memory pool of the executor",
-    short_name = "memory_pool_size", default_value = "262144000")
-  public final class MemoryPoolSize implements Name<Long> {
+    short_name = "memory_pool_size_mb", default_value = "256")
+  public final class MemoryPoolSizeMb implements Name<Integer> {
   }
 
   /**
    * MemoryChunk size in the memory pool.
    */
   @NamedParameter(doc = "The memory chunk size in the memory pool of the executor",
-    short_name = "chunk_size", default_value = "32768")
-  public final class ChunkSize implements Name<Integer> {
+    short_name = "chunk_size_kb", default_value = "32")
+  public final class ChunkSizeKb implements Name<Integer> {
   }
 
   //////////////////////////////// Intermediate Configurations

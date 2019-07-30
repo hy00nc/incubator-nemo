@@ -29,27 +29,26 @@ import java.util.List;
 
 /**
  * This class is a customized output stream implementation backed by
- * {@link ByteBuffer}, which utilizes off heap memory when writing the data.
- * Memory is allocated when needed by the specified {@code pageSize}.
+ * {@link ByteBuffer}, which utilizes off heap memory when writing the data via MemoryPoolAssigner.
  * Deletion of {@code dataList}, which is the memory this outputstream holds, occurs
  * when the corresponding block is deleted.
- * TODO #388: Off-heap memory management (reuse ByteBuffer) - implement reuse.
  */
 public final class DirectByteBufferOutputStream extends OutputStream {
 
   private LinkedList<MemoryChunk> dataList = new LinkedList<>();
+  private final int chunkSize;
   private MemoryChunk currentBuf;
   private final MemoryPoolAssigner memoryPoolAssigner;
-  private boolean released;
+  private volatile boolean released;
 
   /**
-   * Constructor which sets {@code pageSize} as specified {@code size}.
-   * Note that the {@code pageSize} has trade-off between memory fragmentation and
-   * native memory (de)allocation overhead.
+   * Default constructor.
    *
-   * @param memoryPoolAssigner the memory pool assigner.
+   * @param memoryPoolAssigner  for memory allocation.
+   * @throws MemoryAllocationException  if fails to allocate new memory.
    */
   public DirectByteBufferOutputStream(final MemoryPoolAssigner memoryPoolAssigner) throws MemoryAllocationException {
+    this.chunkSize = memoryPoolAssigner.getChunkSize();
     this.memoryPoolAssigner = memoryPoolAssigner;
     newLastBuffer();
     currentBuf = dataList.getLast();
@@ -58,8 +57,9 @@ public final class DirectByteBufferOutputStream extends OutputStream {
 
   /**
    * Allocates new {@link ByteBuffer} with the capacity equal to {@code pageSize}.
+   *
+   * @throws MemoryAllocationException  if fail to allocate memory chunk.
    */
-  // TODO #388: Off-heap memory management (reuse ByteBuffer)
   private void newLastBuffer() throws MemoryAllocationException {
     dataList.addLast(memoryPoolAssigner.allocateChunk(true));
   }
@@ -75,7 +75,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
       throw new IOException("The outputStream is released");
     }
     try {
-      if (currentBuf.remaining() <= 0) {
+      if (!released && currentBuf.remaining() <= 0) {
         newLastBuffer();
         currentBuf = dataList.getLast();
       }
@@ -116,7 +116,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
     int offset = off;
     try {
       while (byteToWrite > 0) {
-        if (currentBuf.remaining() <= 0) {
+        if (!released && currentBuf.remaining() <= 0) {
           newLastBuffer();
           currentBuf = dataList.getLast();
         }
@@ -144,6 +144,7 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    *
    * USED BY TESTS ONLY.
    * @return the current contents of this output stream, as byte array.
+   * @throws IllegalAccessException if MemoryChunk is used in an inappropriate way.
    */
   @VisibleForTesting
   byte[] toByteArray() throws IllegalAccessException {
@@ -151,19 +152,21 @@ public final class DirectByteBufferOutputStream extends OutputStream {
       final byte[] byteArray = new byte[0];
       return byteArray;
     }
-
+    if (released) {
+      throw new IllegalStateException("This output stream was released");
+    }
     MemoryChunk lastBuf = dataList.getLast();
     // pageSize equals the size of the data filled in the ByteBuffers
     // except for the last ByteBuffer. The size of the data in the
-    // ByteBuffer can be obtained by calling ByteBuffer.position().
-    final int arraySize = memoryPoolAssigner.returnSize() * (dataList.size() - 1) + lastBuf.position();
+    // ByteBuffer can be obtained by calling MemoryChunk.position().
+    final int arraySize = chunkSize * (dataList.size() - 1) + lastBuf.position();
     final byte[] byteArray = new byte[arraySize];
     int start = 0;
 
-    for (final MemoryChunk buffer : dataList) {
+    for (final MemoryChunk chunk : dataList) {
       // We use duplicated buffer to read the data so that there is no complicated
       // alteration of position and limit when switching between read and write mode.
-      final MemoryChunk dupChunk = buffer.duplicate();
+      final MemoryChunk dupChunk = chunk.duplicate();
       final ByteBuffer dupBuffer = dupChunk.getBuffer();
       dupBuffer.flip();
       final int byteToWrite = dupBuffer.remaining();
@@ -186,7 +189,6 @@ public final class DirectByteBufferOutputStream extends OutputStream {
   public List<ByteBuffer> getDirectByteBufferList() throws IOException {
     if (released) {
       throw new IOException("The outputStream is released");
-    }
     List<ByteBuffer> result = new ArrayList<>(dataList.size());
     for (final MemoryChunk chunk : dataList) {
       final MemoryChunk dupChunk = chunk.duplicate();
@@ -201,9 +203,10 @@ public final class DirectByteBufferOutputStream extends OutputStream {
    * Returns the size of the data written in this output stream.
    *
    * @return the size of the data
+   * @throws IllegalAccessException if position is not allowed to be accessed.
    */
   public int size() throws IllegalAccessException {
-    return memoryPoolAssigner.returnSize() * (dataList.size() - 1) + dataList.getLast().position();
+    return chunkSize * (dataList.size() - 1) + dataList.getLast().position();
   }
 
   public void release() {

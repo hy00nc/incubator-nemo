@@ -18,7 +18,6 @@
  */
 package org.apache.nemo.runtime.executor.data.stores;
 
-import org.apache.nemo.runtime.executor.data.MemoryPoolAssigner;
 import org.apache.nemo.common.exception.BlockFetchException;
 import org.apache.nemo.common.exception.BlockWriteException;
 import org.apache.nemo.runtime.executor.data.block.Block;
@@ -40,7 +39,7 @@ public interface BlockStore {
    *                             through {@link org.apache.nemo.runtime.executor.Executor} and
    *                             have to be handled by the scheduler with fault tolerance mechanism.)
    */
-  Block createBlock(String blockId, MemoryPoolAssigner memoryPoolAssigner) throws BlockWriteException;
+  Block createBlock(String blockId) throws BlockWriteException;
 
   /**
    * Writes a committed block to this store.

@@ -358,6 +358,9 @@ public final class BlockManagerWorker {
                 try (ByteOutputContext.ByteOutputStream os = outputContext.newOutputStream()) {
                   os.writeSerializedPartitionBuffer(partition);
                 }
+                if (DataStoreProperty.Value.MemoryStore.equals(blockStore)) {
+                  partition.release();
+                }
               }
             }
             handleDataPersistence(blockStore, blockId);

@@ -41,7 +41,7 @@ public final class DefaultDataStorePass extends AnnotatingPass {
     dag.getVertices().forEach(vertex -> {
       final List<IREdge> inEdges = dag.getIncomingEdgesOf(vertex);
       inEdges.forEach(edge ->
-        edge.setPropertyPermanently(DataStoreProperty.of(DataStoreProperty.Value.SerializedMemoryStore)));
+        edge.setPropertyPermanently(DataStoreProperty.of(DataStoreProperty.Value.MemoryStore)));
     });
     return dag;
   }

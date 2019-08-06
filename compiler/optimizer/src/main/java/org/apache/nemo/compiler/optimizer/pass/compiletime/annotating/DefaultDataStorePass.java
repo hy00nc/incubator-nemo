@@ -19,7 +19,10 @@
 package org.apache.nemo.compiler.optimizer.pass.compiletime.annotating;
 
 import org.apache.nemo.common.ir.IRDAG;
+import org.apache.nemo.common.ir.edge.IREdge;
 import org.apache.nemo.common.ir.edge.executionproperty.DataStoreProperty;
+
+import java.util.List;
 
 /**
  * Edge data store pass to process inter-stage memory store edges.
@@ -36,10 +39,9 @@ public final class DefaultDataStorePass extends AnnotatingPass {
   @Override
   public IRDAG apply(final IRDAG dag) {
     dag.getVertices().forEach(vertex -> {
-      dag.getIncomingEdgesOf(vertex).stream()
-        .filter(edge -> !edge.getPropertyValue(DataStoreProperty.class).isPresent())
-        .forEach(edge -> edge.setProperty(
-          DataStoreProperty.of(DataStoreProperty.Value.LocalFileStore)));
+      final List<IREdge> inEdges = dag.getIncomingEdgesOf(vertex);
+      inEdges.forEach(edge ->
+        edge.setPropertyPermanently(DataStoreProperty.of(DataStoreProperty.Value.SerializedMemoryStore)));
     });
     return dag;
   }

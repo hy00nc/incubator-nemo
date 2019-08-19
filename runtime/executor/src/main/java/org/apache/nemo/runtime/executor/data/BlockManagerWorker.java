@@ -111,6 +111,7 @@ public final class BlockManagerWorker {
                              final ByteTransfer byteTransfer,
                              final SerializerManager serializerManager,
                              final BlockTransferThrottler blockTransferThrottler) {
+    LOG.info("HY: numThreads: {}", numThreads);
     this.executorId = executorId;
     this.memoryStore = memoryStore;
     this.serializedMemoryStore = serializedMemoryStore;

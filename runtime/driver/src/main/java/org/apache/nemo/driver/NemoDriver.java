@@ -80,6 +80,7 @@ public final class NemoDriver {
   private final String localDirectory;
   private final String glusterDirectory;
   private final ClientRPC clientRPC;
+  private final Integer ioThreadsTotal;
 
   private static ExecutorService runnerThread = Executors.newSingleThreadExecutor(
     new BasicThreadFactory.Builder().namingPattern("User App thread-%d").build());
@@ -111,7 +112,7 @@ public final class NemoDriver {
     this.glusterDirectory = glusterDirectory;
     this.handler = new RemoteClientMessageLoggingHandler(client);
     this.clientRPC = clientRPC;
-    LOG.info("HY: ioTheadsTotal: {}", ioThreadsTotal);
+    this.ioThreadsTotal = ioThreadsTotal;
     // TODO #69: Support job-wide execution property
     ResourceSitePass.setBandwidthSpecificationString(bandwidthString);
     clientRPC.registerHandler(ControlMessage.ClientToDriverMessageType.Notification, this::handleNotification);
@@ -261,10 +262,18 @@ public final class NemoDriver {
 
     final Configuration ncsConfiguration = getExecutorNcsConfiguration();
     final Configuration messageConfiguration = getExecutorMessageConfiguration(executorId);
+//    final Configuration dataPlaneConfiguration = getDataPlaneConfiguration();
+    final Configuration ioThreadsTotalConf = Tang.Factory.getTang().newConfigurationBuilder()
+      .bindNamedParameter(JobConf.IORequestHandleThreadsTotal.class, Integer.toString(ioThreadsTotal))
+      .build();
 
-    return Configurations.merge(executorConfiguration, contextConfiguration, ncsConfiguration, messageConfiguration);
+    return Configurations.merge(executorConfiguration, contextConfiguration, ncsConfiguration,
+      messageConfiguration, ioThreadsTotalConf);
   }
 
+//  private Configuration getDataPlaneConfiguration() {
+//
+//  }
   private Configuration getExecutorNcsConfiguration() {
     return Tang.Factory.getTang().newConfigurationBuilder()
       .bindNamedParameter(NameResolverNameServerPort.class, Integer.toString(nameServer.getPort()))

@@ -84,7 +84,6 @@ public final class ContainerManager {
   private ContainerManager(@Parameter(JobConf.ScheduleSerThread.class) final int scheduleSerThread,
                            final EvaluatorRequestor evaluatorRequestor,
                            final MessageEnvironment messageEnvironment) {
-    LOG.info("HY: scheduleSerThread {}", scheduleSerThread);
     this.isTerminated = false;
     this.evaluatorRequestor = evaluatorRequestor;
     this.messageEnvironment = messageEnvironment;

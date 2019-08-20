@@ -43,7 +43,6 @@ public final class BlockTransferThrottler {
 
   @Inject
   private BlockTransferThrottler(@Parameter(JobConf.MaxNumDownloadsForARuntimeEdge.class) final int maxNum) {
-    LOG.info("HY: maxNumDownloads: {}", maxNum);
     this.maxNum = maxNum;
   }
 

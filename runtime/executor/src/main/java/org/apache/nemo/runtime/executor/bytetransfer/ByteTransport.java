@@ -92,10 +92,6 @@ final class ByteTransport implements AutoCloseable {
     @Parameter(JobConf.PartitionTransportClientNumThreads.class) final int numClientThreads) {
 
     this.nameResolver = nameResolver;
-    LOG.info("HY: ServerBacklog: {}", serverBacklog);
-    LOG.info("HY: ServerNumListeningThreads: {}", numListeningThreads);
-    LOG.info("HY: ServerNumWorkingThreads: {}", numWorkingThreads);
-    LOG.info("HY: ClientNumThreads: {}", numClientThreads);
 
     if (port < 0) {
       throw new IllegalArgumentException(String.format("Invalid ByteTransportPort: %d", port));

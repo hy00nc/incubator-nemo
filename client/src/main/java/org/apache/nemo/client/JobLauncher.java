@@ -149,7 +149,7 @@ public final class JobLauncher {
       + "{\"type\":\"Reserved\",\"memory_mb\":512,\"capacity\":5}]";
     final Configuration executorResourceConfig = getJSONConf(builtJobConf, JobConf.ExecutorJSONPath.class,
       JobConf.ExecutorJSONContents.class, defaultExecutorResourceConfig);
-    final Configuration offHeapMemoryConfig = setMemoryConf(executorResourceConfig, JobConf.ExecutorJSONContents.class,
+    final Configuration offHeapMemoryConfig = setMemoryConf(executorResourceConfig, builtJobConf, JobConf.ExecutorJSONContents.class,
       JobConf.MaxOffheapRatio.class, JobConf.MaxOffheapMb.class);
     final Configuration bandwidthConfig = getJSONConf(builtJobConf, JobConf.BandwidthJSONPath.class,
       JobConf.BandwidthJSONContents.class, "");
@@ -481,11 +481,12 @@ public final class JobLauncher {
   }
 
   private static Configuration setMemoryConf(final Configuration jobConf,
+                                             final Configuration builtConf,
                                              final Class<? extends Name<String>> contentsParameter,
                                              final Class<? extends Name<Double>> offHeapRatio,
                                              final Class<? extends Name<Integer>> maxOffHeapMb)
     throws InjectionException {
-    final Injector injector = TANG.newInjector(jobConf);
+    final Injector injector = TANG.newInjector(Configurations.merge(jobConf, builtConf));
     try {
       final String contents = injector.getNamedInstance(contentsParameter);
       final ObjectMapper objectMapper = new ObjectMapper();

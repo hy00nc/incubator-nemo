@@ -98,7 +98,8 @@ public final class NemoDriver {
                      @Parameter(JobConf.BandwidthJSONContents.class) final String bandwidthString,
                      @Parameter(JobConf.JobId.class) final String jobId,
                      @Parameter(JobConf.FileDirectory.class) final String localDirectory,
-                     @Parameter(JobConf.GlusterVolumeDirectory.class) final String glusterDirectory) {
+                     @Parameter(JobConf.GlusterVolumeDirectory.class) final String glusterDirectory,
+                     @Parameter(JobConf.IORequestHandleThreadsTotal.class) final Integer ioThreadsTotal) {
     IdManager.setInDriver();
     this.userApplicationRunner = userApplicationRunner;
     this.runtimeMaster = runtimeMaster;
@@ -110,6 +111,7 @@ public final class NemoDriver {
     this.glusterDirectory = glusterDirectory;
     this.handler = new RemoteClientMessageLoggingHandler(client);
     this.clientRPC = clientRPC;
+    LOG.info("HY: ioTheadsTotal: {}", ioThreadsTotal);
     // TODO #69: Support job-wide execution property
     ResourceSitePass.setBandwidthSpecificationString(bandwidthString);
     clientRPC.registerHandler(ControlMessage.ClientToDriverMessageType.Notification, this::handleNotification);

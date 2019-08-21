@@ -80,14 +80,7 @@ public final class NemoDriver {
   private final String localDirectory;
   private final String glusterDirectory;
   private final ClientRPC clientRPC;
-  private final Integer numIOThreads;
-  private final Integer maxNumDownloads;
-  private final Integer scheduleSerThread;
-  private final Integer serverPort;
-  private final Integer clientNumThreads;
-  private final Integer serverBackLog;
-  private final Integer listenThreads;
-  private final Integer workingThreads;
+  private final DataPlaneConf dataPlaneConf;
 
   private static ExecutorService runnerThread = Executors.newSingleThreadExecutor(
     new BasicThreadFactory.Builder().namingPattern("User App thread-%d").build());
@@ -107,14 +100,7 @@ public final class NemoDriver {
                      @Parameter(JobConf.JobId.class) final String jobId,
                      @Parameter(JobConf.FileDirectory.class) final String localDirectory,
                      @Parameter(JobConf.GlusterVolumeDirectory.class) final String glusterDirectory,
-                     @Parameter(JobConf.IORequestHandleThreadsTotal.class) final Integer numIOThreads,
-                     @Parameter(JobConf.MaxNumDownloadsForARuntimeEdge.class) final Integer maxNumDownloads,
-                     @Parameter(JobConf.ScheduleSerThread.class) final Integer scheduleSerThread,
-                     @Parameter(JobConf.PartitionTransportServerPort.class) final Integer serverPort,
-                     @Parameter(JobConf.PartitionTransportClientNumThreads.class) final Integer clientNumThreads,
-                     @Parameter(JobConf.PartitionTransportServerBacklog.class) final Integer serverBackLog,
-                     @Parameter(JobConf.PartitionTransportServerNumListeningThreads.class) final Integer listenThreads,
-                     @Parameter(JobConf.PartitionTransportServerNumWorkingThreads.class) final Integer workingThreads) {
+                     final DataPlaneConf dataPlaneConf) {
     IdManager.setInDriver();
     this.userApplicationRunner = userApplicationRunner;
     this.runtimeMaster = runtimeMaster;
@@ -126,14 +112,7 @@ public final class NemoDriver {
     this.glusterDirectory = glusterDirectory;
     this.handler = new RemoteClientMessageLoggingHandler(client);
     this.clientRPC = clientRPC;
-    this.numIOThreads = numIOThreads;
-    this.maxNumDownloads = maxNumDownloads;
-    this.scheduleSerThread = scheduleSerThread;
-    this.serverPort = serverPort;
-    this.clientNumThreads = clientNumThreads;
-    this.serverBackLog = serverBackLog;
-    this.listenThreads = listenThreads;
-    this.workingThreads = workingThreads;
+    this.dataPlaneConf = dataPlaneConf;
     // TODO #69: Support job-wide execution property
     ResourceSitePass.setBandwidthSpecificationString(bandwidthString);
     clientRPC.registerHandler(ControlMessage.ClientToDriverMessageType.Notification, this::handleNotification);
@@ -283,7 +262,7 @@ public final class NemoDriver {
 
     final Configuration ncsConfiguration = getExecutorNcsConfiguration();
     final Configuration messageConfiguration = getExecutorMessageConfiguration(executorId);
-    final Configuration dataPlaneConfiguration = getDataPlaneConfiguration();
+    final Configuration dataPlaneConfiguration = dataPlaneConf.getDataPlaneConfiguration();
 
     return Configurations.merge(executorConfiguration, contextConfiguration, ncsConfiguration,
       messageConfiguration, dataPlaneConfiguration);
@@ -303,16 +282,47 @@ public final class NemoDriver {
       .build();
   }
 
-  private Configuration getDataPlaneConfiguration() {
-    return Tang.Factory.getTang().newConfigurationBuilder()
-      .bindNamedParameter(JobConf.IORequestHandleThreadsTotal.class, Integer.toString(numIOThreads))
-      .bindNamedParameter(JobConf.MaxNumDownloadsForARuntimeEdge.class, Integer.toString(maxNumDownloads))
-      .bindNamedParameter(JobConf.ScheduleSerThread.class, Integer.toString(scheduleSerThread))
-      .bindNamedParameter(JobConf.PartitionTransportServerPort.class, Integer.toString(serverPort))
-      .bindNamedParameter(JobConf.PartitionTransportClientNumThreads.class, Integer.toString(clientNumThreads))
-      .bindNamedParameter(JobConf.PartitionTransportServerBacklog.class, Integer.toString(serverBackLog))
-      .bindNamedParameter(JobConf.PartitionTransportServerNumListeningThreads.class, Integer.toString(listenThreads))
-      .bindNamedParameter(JobConf.PartitionTransportServerNumWorkingThreads.class, Integer.toString(workingThreads))
-      .build();
+  final class DataPlaneConf {
+
+    private final int numIOThreads;
+    private final int maxNumDownloads;
+    private final int scheduleSerThread;
+    private final int serverPort;
+    private final int clientNumThreads;
+    private final int serverBackLog;
+    private final int listenThreads;
+    private final int workThreads;
+
+    @Inject
+    private DataPlaneConf(@Parameter(JobConf.IORequestHandleThreadsTotal.class) final int numIOThreads,
+                          @Parameter(JobConf.MaxNumDownloadsForARuntimeEdge.class) final int maxNumDownloads,
+                          @Parameter(JobConf.ScheduleSerThread.class) final int scheduleSerThread,
+                          @Parameter(JobConf.PartitionTransportServerPort.class) final int serverPort,
+                          @Parameter(JobConf.PartitionTransportClientNumThreads.class) final int clientNumThreads,
+                          @Parameter(JobConf.PartitionTransportServerBacklog.class) final int serverBackLog,
+                          @Parameter(JobConf.PartitionTransportServerNumListeningThreads.class) final int listenThreads,
+                          @Parameter(JobConf.PartitionTransportServerNumWorkingThreads.class) final int workThreads) {
+      this.numIOThreads = numIOThreads;
+      this.maxNumDownloads = maxNumDownloads;
+      this.scheduleSerThread = scheduleSerThread;
+      this.serverPort = serverPort;
+      this.clientNumThreads = clientNumThreads;
+      this.serverBackLog = serverBackLog;
+      this.listenThreads = listenThreads;
+      this.workThreads = workThreads;
+    }
+
+    private Configuration getDataPlaneConfiguration() {
+      return Tang.Factory.getTang().newConfigurationBuilder()
+        .bindNamedParameter(JobConf.IORequestHandleThreadsTotal.class, Integer.toString(numIOThreads))
+        .bindNamedParameter(JobConf.MaxNumDownloadsForARuntimeEdge.class, Integer.toString(maxNumDownloads))
+        .bindNamedParameter(JobConf.ScheduleSerThread.class, Integer.toString(scheduleSerThread))
+        .bindNamedParameter(JobConf.PartitionTransportServerPort.class, Integer.toString(serverPort))
+        .bindNamedParameter(JobConf.PartitionTransportClientNumThreads.class, Integer.toString(clientNumThreads))
+        .bindNamedParameter(JobConf.PartitionTransportServerBacklog.class, Integer.toString(serverBackLog))
+        .bindNamedParameter(JobConf.PartitionTransportServerNumListeningThreads.class, Integer.toString(listenThreads))
+        .bindNamedParameter(JobConf.PartitionTransportServerNumWorkingThreads.class, Integer.toString(workThreads))
+        .build();
+    }
   }
 }

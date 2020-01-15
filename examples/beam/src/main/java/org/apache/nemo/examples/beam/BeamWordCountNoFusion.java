@@ -72,8 +72,8 @@ import org.apache.beam.sdk.values.PCollection;
  * <p>The input file defaults to a public data set containing the text of of King Lear, by William
  * Shakespeare. You can override it and choose your own input with {@code --inputFile}.
  */
-public final class BeamWordCount {
-  private BeamWordCount() {
+public final class BeamWordCountNoFusion {
+  private BeamWordCountNoFusion() {
   }
 
   public static final String TOKENIZER_PATTERN = "[^\\p{L}]+";
@@ -83,13 +83,13 @@ public final class BeamWordCount {
    * statically out-of-line. This DoFn tokenizes lines of text into individual words; we pass it to
    * a ParDo in the pipeline.
    */
-  static class ExtractWordsFn extends DoFn<String, String> {
+  static class ExtractWordsFn extends DoFn<String, KV<String, Long>> {
     private final Counter emptyLines = Metrics.counter(ExtractWordsFn.class, "emptyLines");
     private final Distribution lineLenDist =
       Metrics.distribution(ExtractWordsFn.class, "lineLenDistro");
 
     @ProcessElement
-    public void processElement(@Element final String element, final OutputReceiver<String> receiver) {
+    public void processElement(@Element final String element, final OutputReceiver<KV<String, Long>> receiver) {
       lineLenDist.update(element.length());
       if (element.trim().isEmpty()) {
         emptyLines.inc();
@@ -101,7 +101,7 @@ public final class BeamWordCount {
       // Output each word encountered into the output PCollection.
       for (String word : words) {
         if (!word.isEmpty()) {
-          receiver.output(word);
+          receiver.output(KV.of(word, 1L));
         }
       }
     }
@@ -129,10 +129,12 @@ public final class BeamWordCount {
     public PCollection<KV<String, Long>> expand(final PCollection<String> lines) {
 
       // Convert lines of text into individual words.
-      PCollection<String> words = lines.apply(ParDo.of(new ExtractWordsFn()));
+      PCollection<KV<String, Long>> words = lines.apply(ParDo.of(new ExtractWordsFn()));
 
       // Count the number of times each word occurs.
-      PCollection<KV<String, Long>> wordCounts = words.apply(Count.perElement());
+      // PCollection<KV<String, Long>> wordCounts = words.apply(Count.perElement());
+      PCollection<KV<String, Iterable<Long>>> wordCountsBeforeSum = words.apply(GroupByKey.<String, Long>create());
+      PCollection<KV<String, Long>> wordCounts = wordCountsBeforeSum.apply(Combine.groupedValues(Sum.ofLongs()));
 
       return wordCounts;
     }
@@ -181,8 +183,8 @@ public final class BeamWordCount {
   }
 
   public static void main(final String[] args) {
-    WordCountOptions options =
-      PipelineOptionsFactory.fromArgs(args).withValidation().as(WordCountOptions.class);
+    BeamWordCountNoFusion.WordCountOptions options =
+      PipelineOptionsFactory.fromArgs(args).withValidation().as(BeamWordCountNoFusion.WordCountOptions.class);
 
     runWordCount(options);
   }

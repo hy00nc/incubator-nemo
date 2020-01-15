@@ -20,7 +20,6 @@
 package org.apache.nemo.examples.beam;
 
 import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.metrics.Counter;
 import org.apache.beam.sdk.metrics.Distribution;
 import org.apache.beam.sdk.metrics.Metrics;
@@ -172,11 +171,12 @@ public final class BeamWordCount {
 
     // Concepts #2 and #3: Our pipeline applies the composite CountWords transform, and passes the
     // static FormatAsTextFn() to the ParDo transform.
-    p.apply("ReadLines", TextIO.read().from(options.getInputFile()))
-      .apply(new CountWords())
-      .apply(MapElements.via(new FormatAsTextFn()))
-      .apply("WriteCounts", TextIO.write().to(options.getOutput()));
+    //p.apply("ReadLines", GenericSourceSink.read(p, options.getInputFile()))
+    PCollection<String> result = GenericSourceSink.read(p, options.getInputFile());
+      result.apply(new CountWords())
+      .apply(MapElements.via(new FormatAsTextFn()));
 
+    GenericSourceSink.write(result, options.getOutput());
     p.run().waitUntilFinish();
   }
 

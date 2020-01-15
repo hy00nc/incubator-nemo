@@ -172,8 +172,9 @@ public final class BeamWordCount {
     // Concepts #2 and #3: Our pipeline applies the composite CountWords transform, and passes the
     // static FormatAsTextFn() to the ParDo transform.
     //p.apply("ReadLines", GenericSourceSink.read(p, options.getInputFile()))
-    PCollection<String> result = GenericSourceSink.read(p, options.getInputFile());
-      result.apply(new CountWords())
+    PCollection<String> result =
+      GenericSourceSink.read(p, options.getInputFile())
+      .apply(new CountWords())
       .apply(MapElements.via(new FormatAsTextFn()));
 
     GenericSourceSink.write(result, options.getOutput());

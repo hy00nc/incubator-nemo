@@ -31,6 +31,7 @@ import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
+import org.apache.beam.sdk.values.TypeDescriptors;
 
 /**
  * An example that counts words in Shakespeare and includes Beam best practices.
@@ -83,13 +84,13 @@ public final class BeamWordCountNoFusion {
    * statically out-of-line. This DoFn tokenizes lines of text into individual words; we pass it to
    * a ParDo in the pipeline.
    */
-  static class ExtractWordsFn extends DoFn<String, KV<String, Long>> {
+  static class ExtractWordsFn extends DoFn<String, String> {
     private final Counter emptyLines = Metrics.counter(ExtractWordsFn.class, "emptyLines");
     private final Distribution lineLenDist =
       Metrics.distribution(ExtractWordsFn.class, "lineLenDistro");
 
     @ProcessElement
-    public void processElement(@Element final String element, final OutputReceiver<KV<String, Long>> receiver) {
+    public void processElement(@Element final String element, final OutputReceiver<String> receiver) {
       lineLenDist.update(element.length());
       if (element.trim().isEmpty()) {
         emptyLines.inc();
@@ -101,7 +102,7 @@ public final class BeamWordCountNoFusion {
       // Output each word encountered into the output PCollection.
       for (String word : words) {
         if (!word.isEmpty()) {
-          receiver.output(KV.of(word, 1L));
+          receiver.output(word);
         }
       }
     }
@@ -129,11 +130,21 @@ public final class BeamWordCountNoFusion {
     public PCollection<KV<String, Long>> expand(final PCollection<String> lines) {
 
       // Convert lines of text into individual words.
-      PCollection<KV<String, Long>> words = lines.apply(ParDo.of(new ExtractWordsFn()));
+      PCollection<String> words = lines.apply(ParDo.of(new ExtractWordsFn()));
+
+      PCollection<KV<String, Long>> wordsAndLong = words.apply(
+        MapElements.into(TypeDescriptors.kvs(TypeDescriptors.strings(), TypeDescriptors.longs()))
+          .via(new SerializableFunction<String, KV<String, Long>>() {
+          @Override
+          public KV<String, Long> apply(final String input) {
+            return KV.of(input, 1L);
+          }
+        }));
 
       // Count the number of times each word occurs.
       // PCollection<KV<String, Long>> wordCounts = words.apply(Count.perElement());
-      PCollection<KV<String, Iterable<Long>>> wordCountsBeforeSum = words.apply(GroupByKey.<String, Long>create());
+      PCollection<KV<String, Iterable<Long>>> wordCountsBeforeSum =
+        wordsAndLong.apply(GroupByKey.<String, Long>create());
       PCollection<KV<String, Long>> wordCounts = wordCountsBeforeSum.apply(Combine.groupedValues(Sum.ofLongs()));
 
       return wordCounts;
